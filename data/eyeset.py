@@ -89,7 +89,7 @@ class EyeSetResource(object):
 	def __init__(self, folder='../eyeset', dbname='drive', loo=None, **args):
 		super(EyeSetResource, self).__init__()
 		
-		self.folder = '/home/tan/datasets/seteye'
+		self.folder = r'C:\Users\Umer\Music\WS-DMF\data\dataset\DRIVE'
 			
 		self.dbname = dbname
 
@@ -328,7 +328,7 @@ if __name__ == '__main__':
 	# db = EyeSetGenerator(folder='../datasets/seteye', dbname='drive', isBasedPatch=True)#
 	# db = EyeSetGenerator(folder='../datasets/seteye', dbname='hrf', isBasedPatch=True)#
 	# db = EyeSetGenerator(folder='../datasets/seteye', dbname='chase', isBasedPatch=True)#
-	db = EyeSetGenerator(folder='../datasets/seteye', dbname='stare', loo=0)#
+	db = EyeSetGenerator(folder=r'C:\Users\Umer\Music\WS-DMF\data\dataset\DRIVE', dbname='stare', loo=0)#
 	# db = EyeSetGenerator(folder=r'G:\Objects\expSeg\datasets\seteye', dbname='drive', isBasedPatch=False)#
 	# db.expCross = True
 	print('generator:', len(db.trainSet()), len(db.valSet()), len(db.testSet()), )

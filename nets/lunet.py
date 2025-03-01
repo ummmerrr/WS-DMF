@@ -24,7 +24,7 @@ sys.path.append('.')
 sys.path.append('..')
 from utils import *
 from nets import *
-from scls import *
+# from scls import *
 
 #start#
 class UpsampleBlock(torch.nn.Module):
