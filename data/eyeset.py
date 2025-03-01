@@ -77,11 +77,11 @@ class Aug4Val(object):
 		if flag==4:
 			return imgs2arrs(pil_tran(pic, tran=[Image.TRANSPOSE]))
 		if flag==5:
-			return imgs2arrs(pil_tran(pic, tran=[Image.Image.TRANSPOSE,Image.Transpose.FLIP_TOP_BOTTOM]))
+			return imgs2arrs(pil_tran(pic, tran=[Image.TRANSPOSE,Image.Transpose.FLIP_TOP_BOTTOM]))
 		if flag==6:
-			return imgs2arrs(pil_tran(pic, tran=[Image.Image.TRANSPOSE,Image.Transpose.FLIP_LEFT_RIGHT]))
+			return imgs2arrs(pil_tran(pic, tran=[Image.TRANSPOSE,Image.Transpose.FLIP_LEFT_RIGHT]))
 		if flag==7:
-			return imgs2arrs(pil_tran(pic, tran=[Image.Image.TRANSPOSE,Image.Transpose.FLIP_LEFT_RIGHT,Image.Transpose.FLIP_TOP_BOTTOM]))
+			return imgs2arrs(pil_tran(pic, tran=[Image.TRANSPOSE,Image.Transpose.FLIP_LEFT_RIGHT,Image.Transpose.FLIP_TOP_BOTTOM]))
 
 
 class EyeSetResource(object):
@@ -89,7 +89,7 @@ class EyeSetResource(object):
 	def __init__(self, folder='../eyeset', dbname='drive', loo=None, **args):
 		super(EyeSetResource, self).__init__()
 		
-		self.folder = r'/kaggle/input/reitna/data/dataset/DRIVE'
+		self.folder = r'/kaggle/input/ws-dmf/WS-DMF-main/data/dataset/DRIVE'
 			
 		self.dbname = dbname
 
@@ -276,31 +276,34 @@ class EyeSetGenerator(Dataset, EyeSetResource):
 	def __getitem__(self, idx, divide=32):
 		index = idx % self.lens[self.exeData] 
 		pics = self.readDict(index, self.exeData)
-		imag = pics['img']# = cv2.cvtColor(pics['img'], cv2.COLOR_RGB2GRAY)
-
-		# pics['aux'] = pics['ske']
+		imag = pics['img']  # original image
+		
 		if self.isTrainMode:
-			# print(pics['lab'].shape, pics['fov'].shape, pics['aux'].shape)
+			# Ensure lab, fov, and ske have the same shape
+			lab_shape = pics['lab'].shape
+			if pics['fov'].shape != lab_shape:
+				pics['fov'] = cv2.resize(pics['fov'], (lab_shape[1], lab_shape[0]), interpolation=cv2.INTER_NEAREST)
+			if pics['ske'].shape != lab_shape:
+				pics['ske'] = cv2.resize(pics['ske'], (lab_shape[1], lab_shape[0]), interpolation=cv2.INTER_NEAREST)
+				
 			mask = np.stack([pics['lab'], pics['fov'], pics['ske']], axis=-1)
-			# 裁剪增强
+			# Crop augmentation based on non-empty mask
 			augCrop = CropNonEmptyMaskIfExists(p=1, height=self.SIZE_IMAGE, width=self.SIZE_IMAGE)
 			picaug = augCrop(image=imag, mask=mask)
 			imag, mask = picaug['image'], picaug['mask']
 
 			imag = TRANS_TEST(image=imag)['image']
 
-			# 添加噪声
+			# Add noise
 			imag = TRANS_NOISE(image=imag)
-			# 变换增强
+			# Additional augmentation
 			picaug = TRANS_AAUG(image=imag, mask=mask)
 			imag, mask = picaug['image'], picaug['mask']
 			
 			pics['img'] = imag
-			pics['lab'], pics['fov'], pics['ske'] = mask[:,:,0],mask[:,:,1],mask[:,:,2]
+			pics['lab'], pics['fov'], pics['ske'] = mask[:, :, 0], mask[:, :, 1], mask[:, :, 2]
 		else:
-			# pics['img'] = cv2.cvtColor(rgb, cv2.COLOR_RGB2GRAY)
 			pics['img'] = TRANS_TEST(image=pics['img'])['image']
-			# 图像补齐
 			h, w = pics['lab'].shape
 			w = int(np.ceil(w / divide)) * divide
 			h = int(np.ceil(h / divide)) * divide
@@ -308,17 +311,17 @@ class EyeSetGenerator(Dataset, EyeSetResource):
 			for key in pics.keys():
 				pics[key] = augPad(image=pics[key])['image']
 
-			if self.isValMode:# 验证增强->非测试，则增强
-				flag = idx//self.lens[self.exeData]
+			if self.isValMode:
+				flag = idx // self.lens[self.exeData]
 				pics = Aug4Val.forward(pics, flag)
 
-		if pics['img'].shape[-1]==3:#	green or gray
+		if pics['img'].shape[-1] == 3:
 			pics['img'] = cv2.cvtColor(pics['img'], cv2.COLOR_RGB2GRAY)
 
 		for key in pics.keys():
-			# print(key, pics[key].shape)
 			pics[key] = torch.from_numpy(pics[key]).type(torch.float32).div(255)
 		return pics
+
 #end#
 
 
@@ -328,7 +331,8 @@ if __name__ == '__main__':
 	# db = EyeSetGenerator(folder='../datasets/seteye', dbname='drive', isBasedPatch=True)#
 	# db = EyeSetGenerator(folder='../datasets/seteye', dbname='hrf', isBasedPatch=True)#
 	# db = EyeSetGenerator(folder='../datasets/seteye', dbname='chase', isBasedPatch=True)#
-	db = EyeSetGenerator(folder=r'/kaggle/input/reitna/data/dataset/DRIVE', dbname='stare', loo=0)#
+	# /kaggle/input/ws-dmf/WS-DMF-main/data/dataset/DRIVE
+	db = EyeSetGenerator(folder=r'/kaggle/input/ws-dmf/WS-DMF-main/data/dataset/DRIVE', dbname='stare', loo=0)#
 	# db = EyeSetGenerator(folder=r'G:\Objects\expSeg\datasets\seteye', dbname='drive', isBasedPatch=False)#
 	# db.expCross = True
 	print('generator:', len(db.trainSet()), len(db.valSet()), len(db.testSet()), )
